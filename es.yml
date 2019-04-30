@@ -1,0 +1,217 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ns-elastic
+  labels:
+    app: elasticsearch
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+ labels:
+   app: elasticsearch
+ name: elasticsearch-admin
+ namespace: ns-elastic
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+ name: elasticsearch-admin
+ labels:
+   app: elasticsearch
+roleRef:
+ apiGroup: rbac.authorization.k8s.io
+ kind: ClusterRole
+ name: cluster-admin
+subjects:
+ - kind: ServiceAccount
+   name: elasticsearch-admin
+   namespace: ns-elastic
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+ labels:
+   app: elasticsearch
+   role: master
+ name: elasticsearch-master
+ namespace: ns-elastic
+spec:
+ replicas: 3
+ revisionHistoryLimit: 10
+ selector:
+   matchLabels:
+     app: elasticsearch
+     role: master
+ template:
+   metadata:
+     labels:
+       app: elasticsearch
+       role: master
+   spec:
+     serviceAccountName: elasticsearch-admin
+     containers:
+       - name: elasticsearch-master
+         image: elasticsearch:6.5.1
+         command: ["bash", "-c", "ulimit -l unlimited && sysctl -w vm.max_map_count=262144 && exec su elasticsearch docker-entrypoint.sh"]
+         ports:
+           - containerPort: 9200
+             protocol: TCP
+           - containerPort: 9300
+             protocol: TCP
+         env:
+           - name: "cluster.name"
+             value: "elasticsearch-cluster"
+           - name: "bootstrap.memory_lock"
+             value: "true"
+           - name: "discovery.zen.ping.unicast.hosts"
+             value: "elasticsearch-discovery"
+           - name: "discovery.zen.minimum_master_nodes"
+             value: "2"
+           - name: "discovery.zen.ping_timeout"
+             value: "5s"
+           - name: "node.master"
+             value: "true"
+           - name: "node.data"
+             value: "false"
+           - name: "node.ingest"
+             value: "false"
+           - name: "ES_JAVA_OPTS"
+             value: "-Xms512m -Xmx512m"
+         securityContext:
+           privileged: true
+---
+kind: Service
+apiVersion: v1
+metadata:
+ labels:
+   app: elasticsearch
+ name: elasticsearch-discovery
+ namespace: ns-elastic
+spec:
+ ports:
+   - port: 9300
+     targetPort: 9300
+ selector:
+   app: elasticsearch
+   role: master
+---
+apiVersion: v1
+kind: Service
+metadata:
+ name: elasticsearch-data-service
+ namespace: ns-elastic
+ labels:
+   app: elasticsearch
+   role: data
+spec:
+ ports:
+   - port: 9200
+     name: outer
+   - port: 9300
+     name: inner
+ clusterIP: None
+ selector:
+   app: elasticsearch
+   role: data
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: pv-volume-elastic
+  namespace: ns-elastic
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/data"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: pv-claim-elastic
+  namespace: ns-elastic
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 3Gi
+---
+kind: StatefulSet
+apiVersion: apps/v1
+metadata:
+ labels:
+   app: elasticsearch
+   role: data
+ name: elasticsearch-data
+ namespace: ns-elastic
+spec:
+ replicas: 2
+ revisionHistoryLimit: 10
+ selector:
+   matchLabels:
+     app: elasticsearch
+ serviceName: elasticsearch-data-service
+ template:
+   metadata:
+     labels:
+       app: elasticsearch
+       role: data
+   spec:
+     volumes:
+       - name: pv-storage-elastic
+         persistentVolumeClaim:
+           claimName: pv-claim-elastic
+     serviceAccountName: elasticsearch-admin
+     containers:
+       - name: elasticsearch-data
+         image: elasticsearch:6.5.1
+         command: ["bash", "-c", "ulimit -l unlimited && sysctl -w vm.max_map_count=262144 && chown -R elasticsearch:elasticsearch /usr/share/elasticsearch/data && exec su elasticsearch docker-entrypoint.sh"]
+         ports:
+           - containerPort: 9200
+             protocol: TCP
+           - containerPort: 9300
+             protocol: TCP
+         env:
+           - name: "cluster.name"
+             value: "elasticsearch-cluster"
+           - name: "bootstrap.memory_lock"
+             value: "true"
+           - name: "discovery.zen.ping.unicast.hosts"
+             value: "elasticsearch-discovery"
+           - name: "node.master"
+             value: "false"
+           - name: "node.data"
+             value: "true"
+           - name: "ES_JAVA_OPTS"
+             value: "-Xms1024m -Xmx1024m"
+         volumeMounts:
+           - mountPath: /usr/share/elasticsearch/data
+             name: pv-storage-elastic
+         securityContext:
+           privileged: true
+     securityContext:
+       fsGroup: 1000
+---
+kind: Service
+apiVersion: v1
+metadata:
+ labels:
+   app: elasticsearch
+ name: elasticsearch-service
+ namespace: ns-elastic
+spec:
+ type: NodePort
+ ports:
+   - port: 9200
+     targetPort: 9200
+ selector:
+   app: elasticsearch
