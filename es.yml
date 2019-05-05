@@ -126,7 +126,7 @@ metadata:
 spec:
   storageClassName: manual
   capacity:
-    storage: 10Gi
+    storage: 100Gi
   accessModes:
     - ReadWriteOnce
   hostPath:
@@ -154,7 +154,7 @@ metadata:
  name: elasticsearch-data
  namespace: ns-elastic
 spec:
- replicas: 2
+ replicas: 3
  revisionHistoryLimit: 10
  selector:
    matchLabels:
@@ -192,7 +192,7 @@ spec:
            - name: "node.data"
              value: "true"
            - name: "ES_JAVA_OPTS"
-             value: "-Xms1024m -Xmx1024m"
+             value: "-Xms8g -Xmx8g"
          volumeMounts:
            - mountPath: /usr/share/elasticsearch/data
              name: pv-storage-elastic
@@ -213,5 +213,6 @@ spec:
  ports:
    - port: 9200
      targetPort: 9200
+     nodePort: 29200
  selector:
    app: elasticsearch
