@@ -1,0 +1,47 @@
+---
+kind: Deployment
+apiVersion: apps/v1beta2
+metadata:
+  labels:
+    app: kibana
+  name: kibana
+  namespace: ns-elastic
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: kibana
+  template:
+    metadata:
+      labels:
+        app: kibana
+    spec:
+      containers:
+        - name: kibana
+          image: kibana:6.5.1
+          ports:
+            - containerPort: 5601
+              protocol: TCP
+          env:
+            - name: "ELASTICSEARCH_URL"
+              value: "http://elasticsearch-service:9200"
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+---
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    app: kibana
+  name: kibana-service
+  namespace: ns-elastic
+spec:
+  type: NodePort
+  ports:
+    - port: 5601
+      targetPort: 5601
+      nodePort: 25601
+  selector:
+    app: kibana
