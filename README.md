@@ -1,5 +1,5 @@
 # k8s-elastic
-利用K8S部署ELK服务
+利用K8S部署ELK服务（v6.5.1）
 
 ## 快速部署Elasticsearch
 
