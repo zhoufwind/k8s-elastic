@@ -1,0 +1,59 @@
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: pv-volume-gohangout
+  namespace: ns-elastic
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 100Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/data2"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: pv-claim-gohangout
+  namespace: ns-elastic
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 3Gi
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: gohangout
+  namespace: ns-elastic
+  labels:
+    app: gohangout
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gohangout
+  template:
+    metadata:
+      labels:
+        app: gohangout
+    spec:
+      volumes:
+      - name: pv-storage-gohangout
+        persistentVolumeClaim:
+          claimName: pv-claim-gohangout
+      containers:
+      - name: gohangout
+        image: gohangout:1.2.7-3
+        command: ["/bin/sh","-c"]
+        args: ["/opt/gohangout/gohangout --config /usr/share/gohangout/indexer-kafka-dnsmasq-k8s.yml -logtostderr -v 5 --worker 3"]
+        volumeMounts:
+        - name: pv-storage-gohangout
+          mountPath: /usr/share/gohangout
