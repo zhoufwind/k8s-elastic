@@ -24,7 +24,7 @@ curl -s http://localhost:25601
 gohangout配置文件定义在ConfigMap配置中进行配置：
 
 ```bash
-kubectl apply -f gohangout.yml
+kubectl apply -f gohangout-dnsmasq-k8s.yml
 curl -s http://localhost:29200/_cat/indices|sort|grep gohangout-kafka-dnsmasq-2019-05-08
 ```
 
