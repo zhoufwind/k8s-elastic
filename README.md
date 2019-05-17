@@ -12,7 +12,7 @@ curl -s http://localhost:29200
 
 ## 快速部署Kibana
 
-kibana配置文件在YAML文件中进行配置。
+kibana配置文件在YAML文件中进行配置：
 
 ```bash
 kubectl apply -f kibana.yml
@@ -21,7 +21,7 @@ curl -s http://localhost:25601
 
 ## 快速部署Gohangout
 
-配置文件存放在`/data2`目录下，以pvc挂载至容器内部`/usr/share/gohangout`目录，启动命令在YAML文件中进行配置。
+gohangout配置文件定义在ConfigMap配置中进行配置：
 
 ```bash
 kubectl apply -f gohangout.yml
