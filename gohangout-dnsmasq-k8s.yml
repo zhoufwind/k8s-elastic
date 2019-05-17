@@ -57,19 +57,19 @@ metadata:
   name: gohangout
   namespace: ns-elastic
   labels:
-    app: gohangout
+    app: gohangout-dnsmasq-k8s
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: gohangout
+      app: gohangout-dnsmasq-k8s
   template:
     metadata:
       labels:
-        app: gohangout
+        app: gohangout-dnsmasq-k8s
     spec:
       containers:
-      - name: gohangout
+      - name: gohangout-dnsmasq-k8s
         image: gohangout:1.2.7-3
         command: ["/bin/sh","-c"]
         args: ["/opt/gohangout/gohangout --config /usr/share/gohangout/indexer-kafka-dnsmasq-k8s.yml -logtostderr -v 5 --worker 3"]
