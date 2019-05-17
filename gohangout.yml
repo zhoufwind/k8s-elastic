@@ -1,32 +1,55 @@
 ---
-kind: PersistentVolume
+kind: ConfigMap
 apiVersion: v1
 metadata:
-  name: pv-volume-gohangout
+  name: gohangout-config
   namespace: ns-elastic
-  labels:
-    type: local
-spec:
-  storageClassName: manual
-  capacity:
-    storage: 100Gi
-  accessModes:
-    - ReadWriteOnce
-  hostPath:
-    path: "/data2"
----
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: pv-claim-gohangout
-  namespace: ns-elastic
-spec:
-  storageClassName: manual
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 3Gi
+data:
+  gohangout-config-dnsmasq-k8s: |
+    inputs:
+        #- Stdin:
+        #    codec: json
+        - Kafka:
+            topic:
+                dnsmasq: 1
+            #assign:
+            #    healer.test: [0]
+            codec: json
+            consumer_settings:
+                bootstrap.servers: "192.168.38.93:9092"
+                group.id: gohangout-dnsmasq-qa-k8s-topic
+                max.partition.fetch.bytes: 10485760
+                auto.commit.interval.ms: 5000
+                from.beginning: false
+    
+    filters:
+        - Grok:
+            src: message
+            match:
+                - '^(?P<logtime>\S+ \S+ \S+) (?P<pname>\w+)\[(?P<pid>\d+)\]: (?P<action>\S+) (?P<rawdata>.*)$'
+                - '^(?P<logtime>\S+  \S+ \S+) (?P<pname>\w+)\[(?P<pid>\d+)\]: (?P<action>\S+) (?P<rawdata>.*)$'
+            remove_fields: ['message']
+        - Date:
+            src: 'logtime'
+            location: Asia/Shanghai
+            add_year: true
+            formats:
+                - '2006Jan 2 15:04:05'
+            remove_fields: ["logtime"]
+    
+    outputs:
+        #- Stdout: {}
+        - Elasticsearch:
+            hosts:
+                - http://192.168.36.145:29200
+            index: 'gohangout-kafka-dnsmasq-%{+2006-01-02}'
+            index_type: "logs"
+            bulk_actions: 5000
+            bulk_size: 20
+            flush_interval: 30
+            concurrent: 1
+            compress: false
+            retry_response_code: [401, 502]
 ---
 kind: Deployment
 apiVersion: apps/v1
@@ -45,15 +68,18 @@ spec:
       labels:
         app: gohangout
     spec:
-      volumes:
-      - name: pv-storage-gohangout
-        persistentVolumeClaim:
-          claimName: pv-claim-gohangout
       containers:
       - name: gohangout
         image: gohangout:1.2.7-3
         command: ["/bin/sh","-c"]
         args: ["/opt/gohangout/gohangout --config /usr/share/gohangout/indexer-kafka-dnsmasq-k8s.yml -logtostderr -v 5 --worker 3"]
         volumeMounts:
-        - name: pv-storage-gohangout
+        - name: config-dnsmasq-k8s
           mountPath: /usr/share/gohangout
+      volumes:
+      - name: config-dnsmasq-k8s
+        configMap:
+          name: gohangout-config
+          items:
+          - key: gohangout-config-dnsmasq-k8s
+            path: indexer-kafka-dnsmasq-k8s.yml
