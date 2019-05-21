@@ -54,30 +54,30 @@ data:
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: gohangout
+  name: gohangout-k8s-dnsmasq
   namespace: ns-elastic
   labels:
-    app: gohangout-dnsmasq-k8s
+    app: gohangout-k8s-dnsmasq
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: gohangout-dnsmasq-k8s
+      app: gohangout-k8s-dnsmasq
   template:
     metadata:
       labels:
-        app: gohangout-dnsmasq-k8s
+        app: gohangout-k8s-dnsmasq
     spec:
       containers:
-      - name: gohangout-dnsmasq-k8s
+      - name: gohangout-k8s-dnsmasq
         image: gohangout:1.2.7-3
         command: ["/bin/sh","-c"]
         args: ["/opt/gohangout/gohangout --config /usr/share/gohangout/indexer-kafka-dnsmasq-k8s.yml -logtostderr -v 5 --worker 3"]
         volumeMounts:
-        - name: config-dnsmasq-k8s
+        - name: vm-config
           mountPath: /usr/share/gohangout
       volumes:
-      - name: config-dnsmasq-k8s
+      - name: vm-config
         configMap:
           name: gohangout-config
           items:
