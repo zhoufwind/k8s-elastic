@@ -47,6 +47,13 @@ spec:
      containers:
        - name: elasticsearch-master
          image: elasticsearch:6.5.1
+         resources:
+           requests:
+             memory: 8Gi
+             cpu: 2.0
+           limits:
+             memory: 16Gi
+             cpu: 4.0
          command: ["bash", "-c", "ulimit -l unlimited && sysctl -w vm.max_map_count=262144 && exec su elasticsearch docker-entrypoint.sh"]
          ports:
            - containerPort: 9200
@@ -71,7 +78,7 @@ spec:
            - name: "node.ingest"
              value: "false"
            - name: "ES_JAVA_OPTS"
-             value: "-Xms1g -Xmx1g"
+             value: "-Xms4g -Xmx4g"
          securityContext:
            privileged: true
 ---
