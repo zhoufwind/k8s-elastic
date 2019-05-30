@@ -1,0 +1,64 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: logstash-config
+  namespace: ns-elastic
+data:
+  logstash-config-named-k8s: |
+    input {
+      kafka {
+        codec => "json"
+        bootstrap_servers => "192.168.240.61:9092"
+        topics => "named"
+        group_id => "logstash-named-qa-k8s-topic"
+        consumer_threads => 3
+      }
+    }
+    
+    filter {
+      grok {
+        match => ["message", "(?<timestamp>%{MONTHDAY}-%{MONTH}-%{YEAR} %{TIME}) queries: client %{IPV4:c_ip}#%{NUMBER:c_port}: query: %{NOTSPACE:queryrec} %{NOTSPACE:dnsclass} %{NOTSPACE:dnstype} \+ \(%{IPV4:dnsbind}\)"]
+      }
+    }
+
+    output {
+      #stdout { codec => rubydebug }
+      elasticsearch {
+        hosts => ["192.168.36.145:29200"]
+        index => "logstash-kafka-named-%{+YYYY.MM.dd}"
+      }
+    }
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: logstash-k8s-named
+  namespace: ns-elastic
+  labels:
+    app: logstash-k8s-named
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: logstash-k8s-named
+  template:
+    metadata:
+      labels:
+        app: logstash-k8s-named
+    spec:
+      containers:
+      - name: logstash-k8s-named
+        image: logstash:6.8.0
+        command: ["/bin/sh","-c"]
+        args: ["/usr/share/logstash/bin/logstash -f /usr/share/logstash/config/indexer-kafka-named-k8s.conf"]
+        volumeMounts:
+        - name: vm-config
+          mountPath: /usr/share/logstash/config
+      volumes:
+      - name: vm-config
+        configMap:
+          name: logstash-config
+          items:
+          - key: logstash-config-named-k8s
+            path: indexer-kafka-named-k8s.conf
