@@ -19,13 +19,15 @@ spec:
     spec:
       containers:
         - name: kibana
-          image: kibana:6.5.1
+          image: dockerhub-pr.yeshj.com/ops/kibana:6.5.1
           ports:
             - containerPort: 5601
               protocol: TCP
           env:
             - name: "ELASTICSEARCH_URL"
               value: "http://elasticsearch-service:9200"
+      imagePullSecrets:
+      - name: regcred-elastic
       tolerations:
         - key: node-role.kubernetes.io/master
           effect: NoSchedule

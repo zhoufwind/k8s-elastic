@@ -70,12 +70,14 @@ spec:
     spec:
       containers:
       - name: gohangout-k8s-dnsmasq
-        image: gohangout:1.2.7-3
+        image: dockerhub-pr.yeshj.com/ops/gohangout:1.2.7-3
         command: ["/bin/sh","-c"]
         args: ["/opt/gohangout/gohangout --config /usr/share/gohangout/indexer-kafka-dnsmasq-k8s.yml -logtostderr -v 5 --worker 3"]
         volumeMounts:
         - name: vm-config
           mountPath: /usr/share/gohangout
+      imagePullSecrets:
+      - name: regcred-elastic
       volumes:
       - name: vm-config
         configMap:

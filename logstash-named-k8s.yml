@@ -49,12 +49,14 @@ spec:
     spec:
       containers:
       - name: logstash-k8s-named
-        image: logstash:6.8.0
+        image: dockerhub-pr.yeshj.com/ops/logstash:6.8.0
         command: ["/bin/sh","-c"]
         args: ["/usr/share/logstash/bin/logstash -f /usr/share/logstash/config/indexer-kafka-named-k8s.conf"]
         volumeMounts:
         - name: vm-config
           mountPath: /usr/share/logstash/config
+      imagePullSecrets:
+      - name: regcred-elastic
       volumes:
       - name: vm-config
         configMap:

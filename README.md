@@ -9,6 +9,9 @@
 # 创建namespace
 kubectl apply -f ns.yml
 
+# 创建私有仓库权限
+kubectl create secret docker-registry regcred-elastic --docker-server=dockerhub-pr.yeshj.com --docker-username=xxx --docker-password=xxx --docker-email=xxx -n ns-elastic
+
 # 创建es服务
 kubectl apply -f es.yml
 

@@ -46,14 +46,7 @@ spec:
      serviceAccountName: elasticsearch-admin
      containers:
        - name: elasticsearch-master
-         image: elasticsearch:6.5.1
-         resources:
-           requests:
-             memory: 8Gi
-             cpu: 2.0
-           limits:
-             memory: 16Gi
-             cpu: 4.0
+         image: dockerhub-pr.yeshj.com/ops/elasticsearch:6.5.1
          command: ["bash", "-c", "ulimit -l unlimited && sysctl -w vm.max_map_count=262144 && exec su elasticsearch docker-entrypoint.sh"]
          ports:
            - containerPort: 9200
@@ -78,9 +71,11 @@ spec:
            - name: "node.ingest"
              value: "false"
            - name: "ES_JAVA_OPTS"
-             value: "-Xms4g -Xmx4g"
+             value: "-Xms512m -Xmx512m"
          securityContext:
            privileged: true
+     imagePullSecrets:
+     - name: regcred-elastic
 ---
 kind: Service
 apiVersion: v1
@@ -173,14 +168,7 @@ spec:
      serviceAccountName: elasticsearch-admin
      containers:
        - name: elasticsearch-data
-         image: elasticsearch:6.5.1
-         resources:
-           requests:
-             memory: 60Gi
-             cpu: 20.0
-           limits:
-             memory: 62Gi
-             cpu: 22.0
+         image: dockerhub-pr.yeshj.com/ops/elasticsearch:6.5.1
          command: ["bash", "-c", "ulimit -l unlimited && sysctl -w vm.max_map_count=262144 && chown -R elasticsearch:elasticsearch /usr/share/elasticsearch/data && exec su elasticsearch docker-entrypoint.sh"]
          ports:
            - containerPort: 9200
@@ -199,12 +187,14 @@ spec:
            - name: "node.data"
              value: "true"
            - name: "ES_JAVA_OPTS"
-             value: "-Xms30g -Xmx30g"
+             value: "-Xms8g -Xmx8g"
          volumeMounts:
            - mountPath: /usr/share/elasticsearch/data
              name: pv-storage-elastic
          securityContext:
            privileged: true
+     imagePullSecrets:
+      - name: regcred-elastic
      securityContext:
        fsGroup: 1000
 ---
