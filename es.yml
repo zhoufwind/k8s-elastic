@@ -31,7 +31,7 @@ metadata:
  name: elasticsearch-master
  namespace: ns-elastic
 spec:
- replicas: 3
+ replicas: 1
  revisionHistoryLimit: 10
  selector:
    matchLabels:
@@ -46,7 +46,7 @@ spec:
      serviceAccountName: elasticsearch-admin
      containers:
        - name: elasticsearch-master
-         image: dockerhub-pr.yeshj.com/ops/elasticsearch:6.5.1
+         image: dockerhub-pr.yeshj.com/ops/elasticsearch:7.2.0
          command: ["bash", "-c", "ulimit -l unlimited && sysctl -w vm.max_map_count=262144 && exec su elasticsearch docker-entrypoint.sh"]
          ports:
            - containerPort: 9200
@@ -55,15 +55,19 @@ spec:
              protocol: TCP
          env:
            - name: "cluster.name"
-             value: "elasticsearch-cluster"
+             value: "elasticsearch-cluster-v7"
            - name: "bootstrap.memory_lock"
              value: "true"
-           - name: "discovery.zen.ping.unicast.hosts"
+           - name: "bootstrap.system_call_filter"
+             value: "false"
+           - name: "network.host"
+             value: "0.0.0.0"
+           - name: "discovery.seed_hosts"
              value: "elasticsearch-discovery"
-           - name: "discovery.zen.minimum_master_nodes"
-             value: "2"
-           - name: "discovery.zen.ping_timeout"
-             value: "5s"
+           - name: "cluster.initial_master_nodes"
+             valueFrom:
+               fieldRef:
+                 fieldPath: metadata.name
            - name: "node.master"
              value: "true"
            - name: "node.data"
@@ -168,7 +172,7 @@ spec:
      serviceAccountName: elasticsearch-admin
      containers:
        - name: elasticsearch-data
-         image: dockerhub-pr.yeshj.com/ops/elasticsearch:6.5.1
+         image: dockerhub-pr.yeshj.com/ops/elasticsearch:7.2.0
          command: ["bash", "-c", "ulimit -l unlimited && sysctl -w vm.max_map_count=262144 && chown -R elasticsearch:elasticsearch /usr/share/elasticsearch/data && exec su elasticsearch docker-entrypoint.sh"]
          ports:
            - containerPort: 9200
@@ -177,11 +181,19 @@ spec:
              protocol: TCP
          env:
            - name: "cluster.name"
-             value: "elasticsearch-cluster"
+             value: "elasticsearch-cluster-v7"
            - name: "bootstrap.memory_lock"
              value: "true"
-           - name: "discovery.zen.ping.unicast.hosts"
+           - name: "bootstrap.system_call_filter"
+             value: "false"
+           - name: "network.host"
+             value: "0.0.0.0"
+           - name: "discovery.seed_hosts"
              value: "elasticsearch-discovery"
+           - name: "cluster.initial_master_nodes"
+             valueFrom:
+               fieldRef:
+                 fieldPath: metadata.name
            - name: "node.master"
              value: "false"
            - name: "node.data"
