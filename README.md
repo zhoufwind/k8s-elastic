@@ -61,3 +61,6 @@ kubectl apply -f logstash-named-k8s.yml
 - [在Kubernetes上部署Elasticsearch集群](https://blog.csdn.net/chenleiking/article/details/79453460)
 - [在Kubernetes上部署Kibana和Logstash](https://blog.csdn.net/chenleiking/article/details/79466158)
 - [Configuring Logstash for Dockeredit](https://www.elastic.co/guide/en/logstash/current/docker-config.html)
+- [通过环境变量将Pod信息呈现给容器](https://kubernetes.io/zh/docs/tasks/inject-data-application/environment-variable-expose-pod-information/)
+- [Master not discovered yet, this node has not previously joined a bootstrapped (v7+) cluster](https://discuss.elastic.co/t/master-not-discovered-yet-this-node-has-not-previously-joined-a-bootstrapped-v7-cluster/176304)
+- [elasticsearch-kubed](https://github.com/jswidler/elasticsearch-kubed)
