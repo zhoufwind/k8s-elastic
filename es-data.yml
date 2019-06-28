@@ -1,0 +1,113 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: pv-volume-elastic-data
+  namespace: ns-elastic
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 100Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/var/lib/docker/data/es/data"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: pv-claim-elastic-data
+  namespace: ns-elastic
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 3Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: ns-elastic
+  name: elasticsearch-data
+  labels:
+    app: elasticsearch
+    role: data
+spec:
+  serviceName: elasticsearch-data
+  replicas: 3
+  selector:
+    matchLabels:
+      app: elasticsearch
+      role: data
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+        role: data
+    spec:
+      volumes:
+       - name: pv-storage-elastic-data
+         persistentVolumeClaim:
+           claimName: pv-claim-elastic-data
+      containers:
+        - name: elasticsearch
+          image: dockerhub-pr.yeshj.com/ops/elasticsearch:7.2.0
+          resources:
+            requests:
+              memory: 8Gi
+              cpu: 4.0
+            limits:
+              memory: 16Gi
+              cpu: 8.0
+          command: ["bash", "-c", "ulimit -l unlimited && sysctl -w vm.max_map_count=262144 && chown -R elasticsearch:elasticsearch /usr/share/elasticsearch/data && exec su elasticsearch docker-entrypoint.sh"]
+          ports:
+            - containerPort: 9200
+              name: http
+            - containerPort: 9300
+              name: transport
+          env:
+            - name: discovery.seed_hosts
+              value: "elasticsearch-master.ns-elastic.svc.cluster.local"
+            - name: ES_JAVA_OPTS
+              value: -Xms8g -Xmx8g
+
+            - name: node.master
+              value: "false"
+            - name: node.ingest
+              value: "true"
+            - name: node.data
+              value: "true"
+
+            - name: cluster.name
+              value: "elasticsearch-cluster-v7"
+            - name: node.name
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+
+          volumeMounts:
+           - mountPath: /usr/share/elasticsearch/data
+             name: pv-storage-elastic-data
+
+          # Gave permission to init container
+          securityContext:
+            privileged: true
+
+      # Pull image from private repo
+      imagePullSecrets:
+      - name: regcred-elastic
+---
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  namespace: ns-elastic
+  name: elasticsearch-data
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: elasticsearch
+      role: data
